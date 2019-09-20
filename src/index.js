@@ -196,6 +196,15 @@ function shimBelongsTo(target) {
         return original.apply(this, arguments);
       }
 
+      if (this.scope) {
+        options.where = {
+          [Sequelize.Op ? Sequelize.Op.and : '$and']: [
+            options.where,
+            this.scope
+          ]
+        };
+      }
+
       let foreignKeyValue = instance.get(this.foreignKey);
       return Promise.resolve().then(() => {
         if (foreignKeyValue === undefined || foreignKeyValue === null) {
@@ -216,6 +225,15 @@ function shimHasOne(target) {
     return function batchedGetHasOne(instance, options = {}) {
       if (Array.isArray(instance) || options.include || options.transaction || activeClsTransaction() || !options[EXPECTED_OPTIONS_KEY]) {
         return original.apply(this, arguments);
+      }
+
+      if (this.scope) {
+        options.where = {
+          [Sequelize.Op ? Sequelize.Op.and : '$and']: [
+            options.where,
+            this.scope
+          ]
+        };
       }
 
       const loader = options[EXPECTED_OPTIONS_KEY].loaders[this.target.name].bySingleAttribute[this.foreignKey];
