@@ -177,7 +177,7 @@ function shimModel(target) {
       if ([null, undefined].indexOf(id) !== -1) {
         return Promise.resolve(null);
       }
-      if (options.transaction || options.include || activeClsTransaction() || !options[EXPECTED_OPTIONS_KEY]) {
+      if (options.transaction || options.include || activeClsTransaction() || !options[EXPECTED_OPTIONS_KEY] || options.scope) {
         return original.apply(this, arguments);
       }
 
@@ -192,17 +192,8 @@ function shimBelongsTo(target) {
 
   shimmer.wrap(target, 'get', original => {
     return function batchedGetBelongsTo(instance, options = {}) {
-      if (Array.isArray(instance) || options.include || options.transaction || activeClsTransaction() || !options[EXPECTED_OPTIONS_KEY] || options.where) {
+      if (Array.isArray(instance) || options.include || options.transaction || activeClsTransaction() || !options[EXPECTED_OPTIONS_KEY] || options.where || this.scope || options.scope) {
         return original.apply(this, arguments);
-      }
-
-      if (this.scope) {
-        options.where = {
-          [Sequelize.Op ? Sequelize.Op.and : '$and']: [
-            options.where,
-            this.scope
-          ]
-        };
       }
 
       let foreignKeyValue = instance.get(this.foreignKey);
@@ -223,17 +214,8 @@ function shimHasOne(target) {
 
   shimmer.wrap(target, 'get', original => {
     return function batchedGetHasOne(instance, options = {}) {
-      if (Array.isArray(instance) || options.include || options.transaction || activeClsTransaction() || !options[EXPECTED_OPTIONS_KEY]) {
+      if (Array.isArray(instance) || options.include || options.transaction || activeClsTransaction() || !options[EXPECTED_OPTIONS_KEY] || this.scope || options.scope) {
         return original.apply(this, arguments);
-      }
-
-      if (this.scope) {
-        options.where = {
-          [Sequelize.Op ? Sequelize.Op.and : '$and']: [
-            options.where,
-            this.scope
-          ]
-        };
       }
 
       const loader = options[EXPECTED_OPTIONS_KEY].loaders[this.target.name].bySingleAttribute[this.foreignKey];
